@@ -4,10 +4,11 @@ import org.gotti.wurmunlimited.modloader.interfaces.*;
 import org.gotti.wurmunlimited.modsupport.actions.ModActions;
 
 import java.io.IOException;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WaxedMod implements WurmServerMod, PreInitable, Initable, ItemTemplatesCreatedListener, ServerStartedListener {
+public class WaxedMod implements WurmServerMod, Configurable, PreInitable, Initable, ItemTemplatesCreatedListener, ServerStartedListener {
     private static final Logger logger = Logger.getLogger("Waxed");
 
     public static void logException(String msg, Throwable e) {
@@ -25,6 +26,13 @@ public class WaxedMod implements WurmServerMod, PreInitable, Initable, ItemTempl
             logger.log(Level.INFO, msg);
     }
 
+    private static String extraItems;
+
+    @Override
+    public void configure(Properties properties) {
+        extraItems = properties.getProperty("extraItems", "");
+    }
+
     @Override
     public void preInit() {
         ModActions.init();
@@ -36,7 +44,7 @@ public class WaxedMod implements WurmServerMod, PreInitable, Initable, ItemTempl
 
     @Override
     public void onServerStarted() {
-        ModActions.registerAction(new MakeWaxedAction());
+        ModActions.registerAction(new MakeWaxedAction(extraItems));
         ModActions.registerActionPerformer(new WaxedExaminePerformer());
     }
 

@@ -8,20 +8,20 @@ import com.wurmonline.server.behaviours.Action;
 import com.wurmonline.server.behaviours.ActionEntry;
 import com.wurmonline.server.behaviours.Actions;
 import com.wurmonline.server.creatures.Creature;
-import com.wurmonline.server.items.Item;
-import com.wurmonline.server.items.ItemFactory;
-import com.wurmonline.server.items.ItemList;
-import com.wurmonline.server.items.NoSuchTemplateException;
+import com.wurmonline.server.items.*;
 import com.wurmonline.server.skills.SkillList;
 import org.gotti.wurmunlimited.modsupport.actions.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class MakeWaxedAction implements ModAction, ActionPerformer, BehaviourProvider {
     private ActionEntry actionEntry;
 
-    public MakeWaxedAction() {
+    private final Set<Integer> extraItems;
+
+    public MakeWaxedAction(String extra) {
         actionEntry = ActionEntry.createEntry((short) ModActions.getNextActionId(), "Preserve", "waxing", new int[]{
                 1 /* ACTION_TYPE_NEED_FOOD */,
                 4 /* ACTION_TYPE_FATIGUE */,
@@ -29,7 +29,20 @@ public class MakeWaxedAction implements ModAction, ActionPerformer, BehaviourPro
                 48 /* ACTION_TYPE_ENEMY_ALWAYS */,
                 36 /* ACTION_TYPE_ALWAYS_USE_ACTIVE_ITEM */
         });
+
         ModActions.registerAction(actionEntry);
+
+        AdvancedItemIdParser parser = new AdvancedItemIdParser();
+        extraItems = parser.parseListSafe(extra);
+        extraItems.forEach(n -> {
+            try {
+                ItemTemplate tpl = ItemTemplateFactory.getInstance().getTemplate(n);
+                WaxedMod.logInfo(String.format("Added extra item: %s", tpl.getName()));
+            } catch (NoSuchTemplateException e) {
+                WaxedMod.logWarning(String.format("Extra item %d is missing", n));
+            }
+
+        });
     }
 
     @Override
@@ -50,7 +63,7 @@ public class MakeWaxedAction implements ModAction, ActionPerformer, BehaviourPro
     public boolean canUse(Creature performer, Item source, Item target) {
         return performer.isPlayer() && source != null && target != null &&
                 source.getTemplateId() == ItemList.beeswax &&
-                target.isFood() && !target.isLiquid()
+                ((target.isFood() && !target.isLiquid()) || extraItems.contains(target.getTemplateId()))
                 && source.getTopParent() == performer.getInventory().getWurmId()
                 && target.getTopParent() == performer.getInventory().getWurmId()
                 && !source.isTraded() && !target.isTraded() && !target.isNoDrop();
